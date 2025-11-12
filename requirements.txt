@@ -1,0 +1,14 @@
+# Core Project Libraries
+facenet_pytorch
+Flask
+numpy
+
+# OpenCV Libraries (Must remove version constraints for Python 3.12 compatibility)
+opencv_contrib_python
+opencv_python
+opencv_python_headless
+
+# PyTorch Libraries (You installed the latest 3.12-compatible versions, so remove constraints)
+# The old versions (2.0.1 and 0.15.2) are NOT compatible with Python 3.12.
+torch
+torchvision
