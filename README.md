@@ -1,4 +1,4 @@
-# Deepfake Video Detection System -
+# Deepfake Video Detection System
 
 **Frame-Level Facial Embedding Analysis for Deepfake Detection**
 
