@@ -1,6 +1,6 @@
 """
 Deepfake Video Detection System - Facial Embedding Analyzer
-Frame-Level Facial Embedding Analysis Module
+Frame-Level Facial Embedding Analysis Module (CUDA ENABLED)
 
 This module implements the core deepfake detection algorithm using:
 1. MTCNN (Multi-Task Cascaded Convolutional Networks) for face detection and alignment
@@ -28,37 +28,50 @@ from torchvision.transforms import functional as F
 import time
 import traceback
 import os
+import torch  # Import PyTorch
 
 # Global variables to cache models (loaded once, reused for all analyses)
 _mtcnn_model = None
 _inception_resnet_model = None
+_device = None  # Global variable for the device (CPU or CUDA)
 
 
 def get_models():
     """
     Load and cache deep learning models for face detection and feature extraction.
+    Models are moved to the GPU (cuda) if available.
     
     Models:
     - MTCNN: Multi-Task Cascaded Convolutional Networks for face detection
     - InceptionResnetV1: Pre-trained on VGGFace2 for 512-dimensional embedding generation
     
     Returns:
-        tuple: (MTCNN model, InceptionResnetV1 model)
+        tuple: (MTCNN model, InceptionResnetV1 model, device)
     """
-    global _mtcnn_model, _inception_resnet_model
+    global _mtcnn_model, _inception_resnet_model, _device
+    
+    if _device is None:
+        # Determine if CUDA (GPU) is available
+        _device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        print(f"[Facial Embedding Analyzer] Setting device to: {_device}")
+        if not torch.cuda.is_available():
+            print("[Facial Embedding Analyzer] WARNING: CUDA not available. Running on CPU (this will be slow).")
+
     if _mtcnn_model is None or _inception_resnet_model is None:
         print("[Facial Embedding Analyzer] Loading deep learning models...")
         print("[Facial Embedding Analyzer] - MTCNN: Face Detection & Alignment")
         print("[Facial Embedding Analyzer] - InceptionResnetV1: Feature Extraction (VGGFace2)")
         try:
-            _mtcnn_model = MTCNN()
-            _inception_resnet_model = InceptionResnetV1(pretrained='vggface2').eval()
+            # Load models and move them to the selected device (GPU or CPU)
+            _mtcnn_model = MTCNN(device=_device)
+            _inception_resnet_model = InceptionResnetV1(pretrained='vggface2').eval().to(_device)
             print("[Facial Embedding Analyzer] Models loaded successfully")
         except Exception as e:
             print(f"[Facial Embedding Analyzer] Error loading models: {str(e)}")
             traceback.print_exc()
             raise
-    return _mtcnn_model, _inception_resnet_model
+            
+    return _mtcnn_model, _inception_resnet_model, _device
 
 
 def analyze_video_frames(input_video_path, output_video_path):
@@ -88,7 +101,8 @@ def analyze_video_frames(input_video_path, output_video_path):
         DEEPFAKE_FRAME_THRESHOLD = 15  # Number of consecutive frames with low similarity to classify as deepfake
 
         print(f"[Facial Embedding Analyzer] Initializing models...")
-        mtcnn, inception_resnet = get_models()
+        # Get models and the device (CPU or CUDA)
+        mtcnn, inception_resnet, device = get_models()
         
         # Step 1: Video Input - Extract frames using OpenCV
         print(f"[Facial Embedding Analyzer] Opening video: {input_video_path}")
@@ -204,11 +218,13 @@ def analyze_video_frames(input_video_path, output_video_path):
                                 # Resize face to fixed dimensions
                                 face_region = cv2.resize(face_region, face_resize_dimensions)
                                 
-                                # Convert to tensor format for InceptionResnetV1
-                                face_tensor = F.to_tensor(face_region).unsqueeze(0)
+                                # Convert to tensor format and MOVE TENSOR TO GPU
+                                face_tensor = F.to_tensor(face_region).unsqueeze(0).to(device)
                                 
                                 # Step 3: Feature Extraction - Generate 512-dimensional embedding
-                                current_face_embedding = inception_resnet(face_tensor).detach().numpy().flatten()
+                                # Use no_grad to speed up inference and save memory
+                                with torch.no_grad():
+                                    current_face_embedding = inception_resnet(face_tensor).cpu().detach().numpy().flatten()
 
                                 # Step 4: Similarity Check - Compare with previous frame embedding
                                 if previous_face_embedding is not None:
