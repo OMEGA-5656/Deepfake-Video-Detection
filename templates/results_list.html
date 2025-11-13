@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    
+    <title>Deepfake Video Detection System | Batch Results</title>
+    <style>
+        body {
+            background-color: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            background-color: #198754;
+            color: white;
+            border-radius: 15px 15px 0 0;
+            padding: 20px;
+        }
+        .card-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+        .result-item {
+            border-bottom: 1px solid #e9ecef;
+        }
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        .result-tag {
+            font-size: 0.9rem;
+            font-weight: 700;
+            padding: 0.35em 0.7em;
+            border-radius: 50px;
+        }
+        .real-tag {
+            color: #155724;
+            background-color: #d4edda;
+        }
+        .fake-tag {
+            color: #721c24;
+            background-color: #f8d7da;
+        }
+        .error-tag {
+            color: #721c24;
+            background-color: #f8d7da;
+        }
+        .filename {
+            font-weight: 500;
+            color: #0056b3;
+            word-break: break-all;
+        }
+        footer {
+            background-color: #343a40;
+            color: #ffffff;
+            padding: 15px 0; 
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">Deepfake Video Detection System</a>
+    </div>
+</nav>
+
+<div class="container my-5">
+    <div class="card mx-auto" style="max-width: 900px;">
+        <div class="card-header text-center">
+            <h1 class="card-title">Batch Analysis Results</h1>
+        </div>
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+                <!-- Header Row -->
+                <div class="list-group-item d-none d-md-flex px-4 py-3 bg-light">
+                    <div class="col-md-5"><strong>Filename</strong></div>
+                    <div class="col-md-2 text-center"><strong>Result</strong></div>
+                    <div class="col-md-2 text-center"><strong>Fake %</strong></div>
+                    <div class="col-md-3 text-center"><strong>Links</strong></div>
+                </div>
+
+                <!-- Results Loop -->
+                {% for result in results %}
+                <div class="list-group-item px-4 py-3 result-item">
+                    <div class="row align-items-center">
+                        <!-- Filename -->
+                        <div class="col-md-5 mb-2 mb-md-0">
+                            <div class="d-md-none"><strong>File:</strong></div>
+                            <span class="filename">{{ result.filename }}</span>
+                        </div>
+                        
+                        <!-- Result Tag -->
+                        <div class="col-6 col-md-2 text-md-center mb-2 mb-md-0">
+                            <div class="d-md-none"><strong>Result:</strong></div>
+                            {% if result.is_fake == True %}
+                                <span class="result-tag fake-tag">🚨 FAKE</span>
+                            {% elif result.is_fake == False %}
+                                <span class="result-tag real-tag">✅ REAL</span>
+                            {% else %}
+                                <span class="result-tag error-tag">ERROR</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Percentage -->
+                        <div class="col-6 col-md-2 text-md-center mb-2 mb-md-0">
+                            <div class="d-md-none"><strong>Fake %:</strong></div>
+                            <strong>{{ result.rate }}%</strong>
+                        </div>
+
+                        <!-- Links -->
+                        <div class="col-md-3 text-md-center">
+                            <small>
+                                {% if result.original_video_url %}
+                                    <a href="{{ result.original_video_url }}" target="_blank">Original</a>
+                                {% endif %}
+                                {% if result.processed_video_url %}
+                                    | <a href="{{ result.processed_video_url }}" target="_blank">Processed</a>
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="card-footer text-center">
+            <p class="mb-0">Batch processing complete. Results have also been appended to <strong>result.txt</strong>.</p>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div class="container text-center">
+        <p>&copy; 2025 Deepfake Video Detection System</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

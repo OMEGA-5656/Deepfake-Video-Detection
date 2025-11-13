@@ -1,0 +1,24 @@
+data/example.mp4:True
+data/example1.mp4:True
+data/fake.mp4:True
+data/oba.mp4:False
+data/video.mp4:False
+data/video2.mp4:False
+data/example.mp4:True
+data/example1.mp4:True
+data/fake.mp4:True
+data/oba.mp4:False
+data/video.mp4:False
+data/video2.mp4:False
+200 deepfakes/01_02__hugging_happy__YVGY8LOK.mp4:True
+200 deepfakes/01_02__meeting_serious__YVGY8LOK.mp4:True
+200 deepfakes/01_02__outside_talking_still_laughing__YVGY8LOK.mp4:True
+200 deepfakes/01_02__secret_conversation__YVGY8LOK.mp4:False
+200 deepfakes/01_02__talking_against_wall__YVGY8LOK.mp4:False
+200 deepfakes/01_02__talking_angry_couch__YVGY8LOK.mp4:True
+200 deepfakes/01_02__walking_and_outside_surprised__YVGY8LOK.mp4:True
+200 deepfakes/01_02__walking_down_indoor_hall_disgust__YVGY8LOK.mp4:True
+200 deepfakes/01_03__hugging_happy__ISF9SP4G.mp4:True
+200 deepfakes/01_03__kitchen_still__JZUXXFRB.mp4:True
+200 deepfakes/01_03__meeting_serious__JZUXXFRB.mp4:True
+200 deepfakes/01_03__outside_talking_pan_laughing__ISF9SP4G.mp4:True

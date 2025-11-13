@@ -283,4 +283,3 @@ def analyze_video_frames(input_video_path, output_video_path):
         except:
             pass
         return 50  # Return default detection rate on error
-

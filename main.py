@@ -1,13 +1,13 @@
 """
-Deepfake Video Detection System - AuthentiScan
+Deepfake Video Detection System
 Flask Web Application for Frame-Level Facial Embedding Analysis
 
 This module implements the web interface for the deepfake detection system.
-It handles video uploads, processes them through the facial embedding analyzer,
-and displays results with visual annotations.
+It handles video uploads (single and batch) processes them through 
+the facial embedding analyzer, and displays results.
 
 Methodology:
-1. Video Input: User uploads video through web interface
+1. Video Input: User uploads video(s) through web interface
 2. Face Detection: MTCNN model detects and aligns faces in frames
 3. Feature Extraction: InceptionResnetV1 generates 512-dimensional embeddings
 4. Similarity Analysis: Cosine similarity compares embeddings across frames
@@ -27,32 +27,41 @@ from urllib.parse import quote, unquote
 
 # Initialize Flask application
 app = Flask(__name__)
-app.secret_key = 'authentiscan-secret-key-2024'  # Secret key for session management
+app.secret_key = 'deepfake-detection-secret-key-2024'  # Secret key for session management
 
 # Configuration
 PROCESSED_VIDEOS_FOLDER = 'static/videos'  # Folder for processed videos with annotations
 app.config['UPLOAD_FOLDER'] = PROCESSED_VIDEOS_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # Maximum file size: 500MB
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 * 1024  # Maximum file size: 2GB (for batch)
 
 # Ensure processed videos directory exists
 os.makedirs(PROCESSED_VIDEOS_FOLDER, exist_ok=True)
 
+# Ensure result.txt exists
+if not os.path.exists('result.txt'):
+    try:
+        with open('result.txt', 'w') as f:
+            f.write("# Deepfake Analysis Results (filename:is_fake)\n")
+    except IOError as e:
+        print(f"[Deepfake Detection] CRITICAL: Could not create result.txt: {e}")
+
+
 # Pre-load deep learning models at startup for faster processing
-print("[AuthentiScan] Initializing facial embedding analysis models...")
+print("[Deepfake Detection] Initializing facial embedding analysis models...")
 try:
     from facial_embedding_analyzer import get_models
     get_models()
-    print("[AuthentiScan] Models loaded successfully (MTCNN + InceptionResnetV1)")
+    print("[Deepfake Detection] Models loaded successfully (MTCNN + InceptionResnetV1)")
 except Exception as e:
-    print(f"[AuthentiScan] Warning: Could not pre-load models: {str(e)}")
-    print("[AuthentiScan] Models will be loaded on first video analysis request")
+    print(f"[Deepfake Detection] Warning: Could not pre-load models: {str(e)}")
+    print("[Deepfake Detection] Models will be loaded on first video analysis request")
 
 
 @app.route('/')
 def index():
     """
-    Render the main upload page for AuthentiScan.
-    Users can upload videos for deepfake detection analysis.
+    Render the main upload page for Deepfake Detection.
+    Users can upload a single video or a folder for batch analysis.
     """
     return render_template('index.html')
 
@@ -60,10 +69,10 @@ def index():
 @app.route('/video/<filename>')
 def serve_video(filename):
     """
-    Serve processed video files with proper MIME type and headers for HTML5 playback.
+    Serve processed video files (from single upload) with proper MIME type.
     
     Args:
-        filename: Name of the video file to serve
+        filename: Name of the video file to serve from the root UPLOAD_FOLDER
         
     Returns:
         Video file with appropriate headers or error response
@@ -114,55 +123,77 @@ def serve_video(filename):
         return "Error serving video", 500
 
 
+@app.route('/video/<batch_folder>/<filename>')
+def serve_video_batch(batch_folder, filename):
+    """
+    Serve processed video files from a specific batch folder.
+    
+    Args:
+        batch_folder: The sub-folder for the analysis batch
+        filename: Name of the video file to serve
+        
+    Returns:
+        Video file with appropriate headers or error response
+    """
+    try:
+        filename = unquote(filename)
+        batch_folder = unquote(batch_folder)
+        print(f"[VIDEO SERVE BATCH] Requested video: {batch_folder}/{filename}")
+        
+        video_path = os.path.join(app.config['UPLOAD_FOLDER'], batch_folder, filename)
+        
+        if os.path.exists(video_path) and os.path.isfile(video_path):
+            file_size = os.path.getsize(video_path)
+            print(f"[VIDEO SERVE BATCH] File size: {file_size / 1024:.2f} KB")
+
+            mimetype, encoding = mimetypes.guess_type(video_path)
+            
+            if not mimetype:
+                if filename.lower().endswith('.avi'): mimetype = 'video/x-msvideo'
+                elif filename.lower().endswith('.webm'): mimetype = 'video/webm'
+                elif filename.lower().endswith('.mov'): mimetype = 'video/quicktime'
+                else: mimetype = 'video/mp4'
+            
+            response = send_file(video_path, mimetype=mimetype, conditional=True)
+            response.headers['Accept-Ranges'] = 'bytes'
+            response.headers['Cache-Control'] = 'public, max-age=3600'
+            
+            print(f"[VIDEO SERVE BATCH] Successfully serving video with MIME type: {mimetype}")
+            return response
+        else:
+            print(f"[VIDEO SERVE BATCH] ERROR: Video file not found at {video_path}")
+            return "Video not found", 404
+    except Exception as e:
+        print(f"[VIDEO SERVE BATCH] ERROR: {str(e)}")
+        traceback.print_exc()
+        return "Error serving video", 500
+
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     """
-    Handle video file upload and initiate frame-level facial embedding analysis.
-    
-    Process:
-    1. Validate uploaded file
-    2. Save video to processed_videos folder
-    3. Run facial embedding analysis (MTCNN + InceptionResnetV1)
-    4. Convert output to web-compatible format
-    5. Redirect to results page
+    Handle SINGLE video file upload and initiate analysis.
     
     Returns:
         Redirect to results page with analysis data
     """
     try:
         if 'file' not in request.files:
-            flash('No file part in the request')
+            flash('No file part in the request', 'danger')
             return redirect(request.url)
 
         file = request.files['file']
 
         if file.filename == '':
-            flash('No file selected')
+            flash('No file selected', 'danger')
             return redirect(request.url)
 
         # Validate file extension
         if not file.filename.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
-            flash('Invalid file type. Please upload a video file (.mp4, .avi, .mov, .mkv)')
+            flash('Invalid file type. Please upload a video file (.mp4, .avi, .mov, .mkv)', 'danger')
             return redirect(request.url)
 
         if file:
-            # Clean up old processed videos before saving new one
-            print(f"[UPLOAD] Cleaning up previous analysis results...")
-            try:
-                upload_dir = app.config['UPLOAD_FOLDER']
-                if os.path.exists(upload_dir):
-                    for old_file in os.listdir(upload_dir):
-                        old_file_path = os.path.join(upload_dir, old_file)
-                        try:
-                            if os.path.isfile(old_file_path):
-                                os.remove(old_file_path)
-                                print(f"[UPLOAD] Removed old file: {old_file}")
-                        except Exception as e:
-                            print(f"[UPLOAD] Warning: Could not delete {old_file}: {str(e)}")
-                print(f"[UPLOAD] Cleanup complete")
-            except Exception as e:
-                print(f"[UPLOAD] Warning: Error during cleanup: {str(e)}")
-            
             # Generate unique filename with timestamp
             timestamp = int(current_time())
             filename = f"uploaded_video_{timestamp}.mp4"
@@ -174,7 +205,7 @@ def upload_file():
             file.save(video_path)
             
             if not os.path.exists(video_path):
-                flash('Error saving file')
+                flash('Error saving file', 'danger')
                 return redirect(request.url)
 
             # Path for processed video with annotations
@@ -182,32 +213,35 @@ def upload_file():
 
             # Step 3: Run Frame-Level Facial Embedding Analysis
             print(f"[UPLOAD] Starting frame-level facial embedding analysis...")
-            print(f"[UPLOAD] Using MTCNN for face detection and InceptionResnetV1 for feature extraction")
             try:
                 from facial_embedding_analyzer import analyze_video_frames
                 
-                # Analyze video using cosine similarity on facial embeddings
                 deepfake_detection_rate = analyze_video_frames(video_path, processed_video_path)
                 print(f"[UPLOAD] Analysis complete. Deepfake detection rate: {deepfake_detection_rate}%")
+
+                # Write result to result.txt
+                is_fake = deepfake_detection_rate >= 50
+                try:
+                    with open('result.txt', 'a') as f:
+                        f.write(f"{file.filename} (saved as {filename}):{is_fake}\n")
+                except IOError as e:
+                     print(f"[UPLOAD] ERROR: Could not write to result.txt: {e}")
 
             except Exception as e:
                 print(f"[UPLOAD] Error during facial embedding analysis: {str(e)}")
                 traceback.print_exc()
                 error_msg = str(e)
-                # Truncate very long error messages
-                if len(error_msg) > 200:
-                    error_msg = error_msg[:200] + "..."
-                flash(f'Error processing video: {error_msg}')
-                # Return default detection rate on error
-                deepfake_detection_rate = 50
+                if len(error_msg) > 200: error_msg = error_msg[:200] + "..."
+                flash(f'Error processing video: {error_msg}', 'danger')
+                deepfake_detection_rate = 50 # Default on error
 
-            # Find the actual processed video file (may be .avi or .mp4 depending on codec)
+            # Find the actual processed video file (may be .avi or .mp4)
             processed_video_basename = None
             base_processed_name = "analyzed_" + filename.rsplit('.', 1)[0]  # Remove .mp4 extension
             avi_path = os.path.join(app.config['UPLOAD_FOLDER'], base_processed_name + '.avi')
             mp4_path = os.path.join(app.config['UPLOAD_FOLDER'], base_processed_name + '.mp4')
             
-            # Convert .avi to .mp4 if needed for web compatibility
+            # --- This logic attempts to convert .avi to .mp4 for web compatibility ---
             if os.path.exists(avi_path) and os.path.getsize(avi_path) > 0:
                 print(f"[UPLOAD] Converting .avi to .mp4 for web compatibility...")
                 try:
@@ -217,117 +251,59 @@ def upload_file():
                         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
                         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                         
-                        # Try to use ffmpeg if available (best for HTML5 compatibility)
                         use_ffmpeg = False
                         try:
-                            result = subprocess.run(['ffmpeg', '-version'], 
-                                                  capture_output=True, 
-                                                  timeout=2)
-                            if result.returncode == 0:
-                                use_ffmpeg = True
-                                print(f"[UPLOAD] Using ffmpeg for conversion (H.264 codec)")
+                            result = subprocess.run(['ffmpeg', '-version'], capture_output=True, timeout=2)
+                            if result.returncode == 0: use_ffmpeg = True
                         except (FileNotFoundError, subprocess.TimeoutExpired):
-                            print(f"[UPLOAD] ffmpeg not available, using OpenCV")
+                            pass # ffmpeg not available
                         
                         conversion_success = False
                         if use_ffmpeg:
-                            # Use ffmpeg with H.264 codec for best HTML5 compatibility
                             try:
                                 ffmpeg_cmd = [
                                     'ffmpeg', '-y', '-i', avi_path,
-                                    '-c:v', 'libx264', '-preset', 'fast',
-                                    '-crf', '23', '-c:a', 'aac', '-b:a', '128k',
-                                    '-movflags', '+faststart',  # Enable fast start for web playback
+                                    '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', 
+                                    '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart',
                                     mp4_path
                                 ]
-                                result = subprocess.run(ffmpeg_cmd, 
-                                                      capture_output=True, 
-                                                      timeout=300)  # 5 minute timeout
+                                result = subprocess.run(ffmpeg_cmd, capture_output=True, timeout=300)
                                 if result.returncode == 0 and os.path.exists(mp4_path) and os.path.getsize(mp4_path) > 0:
                                     os.remove(avi_path)
-                                    print(f"[UPLOAD] Successfully converted to .mp4 using ffmpeg")
                                     processed_video_basename = base_processed_name + '.mp4'
                                     cap.release()
                                     conversion_success = True
-                                else:
-                                    print(f"[UPLOAD] ffmpeg conversion failed, trying OpenCV")
                             except Exception as e:
                                 print(f"[UPLOAD] Error using ffmpeg: {str(e)}, trying OpenCV")
                         
-                        # Fallback to OpenCV conversion if ffmpeg failed or not available
                         if not conversion_success:
-                            # Try multiple codecs for HTML5 compatibility
-                            codecs_to_try = [
-                                ('avc1', 'H.264/AVC'),  # Best for HTML5
-                                ('X264', 'H.264'),       # Alternative H.264
-                                ('H264', 'H.264'),       # Another H.264 variant
-                                ('mp4v', 'MPEG-4'),     # Fallback
-                            ]
-                            
-                            out = None
-                            for codec_name, codec_desc in codecs_to_try:
-                                try:
-                                    fourcc = cv2.VideoWriter_fourcc(*codec_name)
-                                    out = cv2.VideoWriter(mp4_path, fourcc, fps, (width, height))
-                                    if out.isOpened():
-                                        print(f"[UPLOAD] Using codec for conversion: {codec_desc} ({codec_name})")
-                                        break
-                                    else:
-                                        if out:
-                                            out.release()
-                                except Exception as e:
-                                    print(f"[UPLOAD] Failed to use codec {codec_name}: {str(e)}")
-                                    if out:
-                                        out.release()
-                                    continue
-                            
-                            if not out or not out.isOpened():
-                                # Final fallback to mp4v
-                                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-                                out = cv2.VideoWriter(mp4_path, fourcc, fps, (width, height))
-                                print(f"[UPLOAD] Using fallback codec: mp4v")
-                            
+                            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                            out = cv2.VideoWriter(mp4_path, fourcc, fps, (width, height))
                             if out and out.isOpened():
-                                frame_count = 0
                                 while True:
                                     ret, frame = cap.read()
-                                    if not ret:
-                                        break
+                                    if not ret: break
                                     out.write(frame)
-                                    frame_count += 1
-                                
                                 out.release()
-                                cap.release()
-                                
-                                # Delete the .avi file after successful conversion
                                 if os.path.exists(mp4_path) and os.path.getsize(mp4_path) > 0:
                                     os.remove(avi_path)
-                                    print(f"[UPLOAD] Successfully converted .avi to .mp4 ({frame_count} frames)")
                                     processed_video_basename = base_processed_name + '.mp4'
                                 else:
-                                    print(f"[UPLOAD] Conversion failed, keeping .avi file")
                                     processed_video_basename = base_processed_name + '.avi'
                             else:
-                                print(f"[UPLOAD] Could not create video writer, keeping .avi file")
-                                cap.release()
                                 processed_video_basename = base_processed_name + '.avi'
+                            cap.release()
                     else:
-                        print(f"[UPLOAD] Could not open .avi file for conversion")
                         processed_video_basename = base_processed_name + '.avi'
                 except Exception as e:
                     print(f"[UPLOAD] Error converting .avi to .mp4: {str(e)}")
-                    traceback.print_exc()
-                    # Keep the .avi file if conversion fails
                     if os.path.exists(avi_path):
                         processed_video_basename = base_processed_name + '.avi'
             elif os.path.exists(mp4_path) and os.path.getsize(mp4_path) > 0:
                 processed_video_basename = base_processed_name + '.mp4'
-                print(f"[UPLOAD] Found .mp4 processed video: {processed_video_basename}")
             
-            # Fallback to original processed_video_path if not found
             if not processed_video_basename:
                 processed_video_basename = os.path.basename(processed_video_path)
-                print(f"[UPLOAD] Using default processed video name: {processed_video_basename}")
 
             # Prepare video information for results page
             file_size = os.path.getsize(video_path) / 1024  # Size in KB
@@ -336,19 +312,12 @@ def upload_file():
                 'size': f"{file_size:.2f} KB",
                 'user': 'Guest', 
                 'source': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC'),
-                'per': deepfake_detection_rate  # Deepfake detection rate percentage
+                'per': deepfake_detection_rate
             }
-
             video_info_json = json.dumps(video_info)
 
-            # URL encode filenames for safe passing in URL
             encoded_filename = quote(filename, safe='')
             encoded_processed = quote(processed_video_basename, safe='')
-            
-            print(f"[UPLOAD] Redirecting to results page")
-            print(f"[UPLOAD]   - Original video: {filename}")
-            print(f"[UPLOAD]   - Processed video: {processed_video_basename}")
-            print(f"[UPLOAD]   - Deepfake detection rate: {deepfake_detection_rate}%")
             
             return redirect(url_for('result', video_info=video_info_json, 
                                   original_video=encoded_filename, processed_video=encoded_processed))
@@ -356,22 +325,140 @@ def upload_file():
     except Exception as e:
         print(f"[UPLOAD] ERROR: {str(e)}")
         traceback.print_exc()
-        flash(f'An error occurred: {str(e)}')
+        flash(f'An error occurred: {str(e)}', 'danger')
         return redirect(request.url)
+
+
+@app.route('/upload_folder', methods=['POST'])
+def upload_folder():
+    """
+    Handle FOLDER (batch) video upload and initiate analysis for each file.
+    
+    Returns:
+        Redirect to a new results list page
+    """
+    print("[Deepfake Detection] Serving '/upload_folder' route (batch folder).")
+    try:
+        files = request.files.getlist('files[]')
+        if not files or len(files) == 0 or (len(files) == 1 and files[0].filename == ''):
+            flash('No files selected in the folder', 'danger')
+            return redirect(url_for('index'))
+
+        results_list = []
+        
+        # Create a unique subfolder for this batch
+        batch_folder_name = f"batch_{int(current_time())}"
+        batch_folder_path = os.path.join(app.config['UPLOAD_FOLDER'], batch_folder_name)
+        os.makedirs(batch_folder_path, exist_ok=True)
+        
+        print(f"[UPLOAD_FOLDER] Processing batch in: {batch_folder_path}")
+
+        video_files_found = 0
+        
+        for file in files:
+            # Get original filename (e.g., "data/example.mp4")
+            original_filename = file.filename
+            
+            # Check for valid video files
+            if original_filename == '' or not original_filename.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+                print(f"[UPLOAD_FOLDER] Skipping non-video file: {original_filename}")
+                continue
+            
+            video_files_found += 1
+            
+            # --- FIX: Handle relative paths ---
+            # Get just the base filename (e.g., "example.mp4" from "data/example.mp4")
+            base_filename = os.path.basename(original_filename)
+            
+            # Sanitize the base filename
+            safe_filename = ''.join(c for c in base_filename if c.isprintable() or c in '.-_')
+            
+            if not safe_filename:
+                print(f"[UPLOAD_FOLDER] Skipping file with invalid name: {original_filename}")
+                continue
+            # --- END FIX ---
+
+            try:
+                # Save the file using the SAFE base name
+                video_path = os.path.join(batch_folder_path, safe_filename) 
+                print(f"[UPLOAD_FOLDER] Saving: {original_filename} as {video_path}")
+                file.save(video_path)
+                
+                if not os.path.exists(video_path):
+                    print(f"[UPLOAD_FOLDER] CRITICAL: File.save() failed for: {original_filename}")
+                    raise Exception("File not saved correctly") # Trigger the except block
+                    
+                # Path for processed video (target .mp4)
+                base_processed_name = "analyzed_" + safe_filename.rsplit('.', 1)[0]
+                processed_video_path = os.path.join(batch_folder_path, base_processed_name + '.mp4')
+                
+                print(f"[UPLOAD_FOLDER] Analyzing: {safe_filename}")
+                from facial_embedding_analyzer import analyze_video_frames
+                deepfake_detection_rate = analyze_video_frames(video_path, processed_video_path)
+                print(f"[UPLOAD_FOLDER] Analysis complete for {safe_filename}. Rate: {deepfake_detection_rate}%")
+                
+                is_fake = deepfake_detection_rate >= 50
+                
+                # Write to result.txt (append mode)
+                try:
+                    with open('result.txt', 'a') as f:
+                        f.write(f"{original_filename}:{is_fake}\n")
+                except IOError as e:
+                     print(f"[UPLOAD_FOLDER] ERROR: Could not write to result.txt: {e}")
+                    
+                # Find the actual processed file (mp4 or avi)
+                processed_video_url = None
+                avi_path = os.path.join(batch_folder_path, base_processed_name + '.avi')
+                mp4_path = processed_video_path # This was our target
+
+                if os.path.exists(mp4_path) and os.path.getsize(mp4_path) > 0:
+                    processed_video_basename = os.path.basename(mp4_path)
+                    processed_video_url = url_for('serve_video_batch', batch_folder=batch_folder_name, filename=quote(processed_video_basename, safe=''))
+                elif os.path.exists(avi_path) and os.path.getsize(avi_path) > 0:
+                    # Conversion to mp4 might have failed or not run, link to AVI
+                    processed_video_basename = os.path.basename(avi_path) # <-- FIX 1: Was avi_.path
+                    processed_video_url = url_for('serve_video_batch', batch_folder=batch_folder_name, filename=quote(processed_video_basename, safe=''))
+                    print(f"[UPLOAD_FOLDER] Warning: using .avi for {safe_filename}, web playback may fail.")
+                
+                # Append result using the ORIGINAL filename for display
+                results_list.append({
+                    'filename': original_filename,
+                    'rate': deepfake_detection_rate,
+                    'is_fake': is_fake,
+                    'processed_video_url': processed_video_url, # Link to annotated video
+                    'original_video_url': url_for('serve_video_batch', batch_folder=batch_folder_name, filename=quote(safe_filename, safe='')) # Link to original
+                })
+            
+            except Exception as e:
+                print(f"[UPLOAD_FOLDER] ERROR processing file {original_filename}: {str(e)}")
+                traceback.print_exc() # Print full error
+                results_list.append({
+                    'filename': original_filename, # Show the original name the user uploaded
+                    'rate': 'Error',
+                    'is_fake': None,
+                    'processed_video_url': None,
+                    'original_video_url': None # <-- FIX 2: Was original_s
+                })
+        
+        if video_files_found == 0:
+            flash('No valid video files (.mp4, .avi, .mov, .mkv) found in the selected folder.', 'danger')
+            return redirect(url_for('index'))
+
+        # This line correctly renders 'results_list.html' for batch uploads
+        print("[Deepfake Detection] Rendering 'results_list.html' with batch data.")
+        return render_template('results_list.html', results=results_list)
+
+    except Exception as e:
+        print(f"[UPLOAD_FOLDER] FATAL ERROR: {str(e)}")
+        traceback.print_exc()
+        flash(f'An error occurred during batch processing: {str(e)}', 'danger')
+        return redirect(url_for('index'))
 
 
 @app.route('/result')
 def result():
     """
-    Display analysis results page with processed video and deepfake detection rate.
-    
-    Shows:
-    - Processed video with frame annotations (green borders for real, red for deepfake)
-    - Deepfake detection rate percentage
-    - Video metadata (name, size, upload date)
-    
-    Returns:
-        Rendered results template with analysis data
+    Display analysis results page for a SINGLE video.
     """
     try:
         print(f"[RESULT] Loading results page...")
@@ -381,90 +468,66 @@ def result():
         
         if not video_info_json or not original_video_encoded:
             print(f"[RESULT] ERROR: Missing video information")
-            flash('Missing video information')
+            flash('Missing video information', 'danger')
             return redirect(url_for('index'))
         
-        # Decode the filename
         original_video = unquote(original_video_encoded)
-        print(f"[RESULT] Original video: {original_video}")
-        
-        # Parse video information
         video_info = json.loads(video_info_json)
-        print(f"[RESULT] Video name: {video_info.get('name', 'N/A')}")
-        print(f"[RESULT] Deepfake detection rate: {video_info.get('per', 'N/A')}%")
         
-        # Use processed video for display (with frame borders/annotations)
         video_to_display = None
         video_filename = None
         
         if processed_video:
-            # Decode processed video filename if needed
             processed_video_clean = unquote(processed_video) if '%' in processed_video else processed_video
             processed_path = os.path.join(app.config['UPLOAD_FOLDER'], processed_video_clean)
-            print(f"[RESULT] Checking processed video path: {processed_path}")
-            print(f"[RESULT] Processed video exists: {os.path.exists(processed_path)}")
             
             if os.path.exists(processed_path) and os.path.getsize(processed_path) > 0:
                 video_to_display = processed_path
                 video_filename = processed_video_clean
-                print(f"[RESULT] Using processed video with annotations: {video_filename}")
             else:
-                # Try alternative extensions (.avi, .mp4)
+                # Try alternative extensions
                 base_name = processed_video_clean.rsplit('.', 1)[0] if '.' in processed_video_clean else processed_video_clean
                 for ext in ['.avi', '.mp4']:
                     alt_path = os.path.join(app.config['UPLOAD_FOLDER'], base_name + ext)
                     if os.path.exists(alt_path) and os.path.getsize(alt_path) > 0:
                         video_to_display = alt_path
                         video_filename = base_name + ext
-                        print(f"[RESULT] Found processed video with extension {ext}: {video_filename}")
                         break
         
-        # Fallback to original video if processed video not found
+        # Fallback to original video
         if not video_to_display:
             print(f"[RESULT] Processed video not found, falling back to original")
             original_path = os.path.join(app.config['UPLOAD_FOLDER'], original_video)
             if os.path.exists(original_path):
                 video_to_display = original_path
                 video_filename = original_video
-                print(f"[RESULT] Using original video as fallback: {video_filename}")
             else:
                 print(f"[RESULT] ERROR: Neither processed nor original video found")
-                upload_dir = app.config['UPLOAD_FOLDER']
-                if os.path.exists(upload_dir):
-                    files = os.listdir(upload_dir)
-                    print(f"[RESULT] Available files in directory: {files}")
-                flash('Video file not found')
+                flash('Video file not found', 'danger')
                 return redirect(url_for('index'))
         
-        file_size = os.path.getsize(video_to_display)
-        print(f"[RESULT] Video file size: {file_size / 1024:.2f} KB")
-        
-        # Create URL for video serving route
+        # Create URL for the single-file video serving route
         encoded_filename = quote(video_filename, safe='')
         video_url = f"/video/{encoded_filename}"
         print(f"[RESULT] Video URL: {video_url}")
 
+        # This line correctly renders 'result.html' for single videos
         return render_template('result.html', video_url=video_url, video_info=video_info, 
                               video_filename=video_filename)
     except Exception as e:
         print(f"[RESULT] ERROR: {str(e)}")
         traceback.print_exc()
-        flash(f'Error displaying results: {str(e)}')
+        flash(f'Error displaying results: {str(e)}', 'danger')
         return redirect(url_for('index'))
 
 
 if __name__ == '__main__':
     """
-    Run the AuthentiScan Flask application.
-    
-    The application runs on http://127.0.0.1:5000 by default.
-    Debug mode is enabled for development.
+    Run the Deepfake Detection Flask application.
     """
-    print("[AuthentiScan] Starting Deepfake Video Detection System...")
-    print("[AuthentiScan] Application: AuthentiScan")
-    print("[AuthentiScan] Methodology: Frame-Level Facial Embedding Analysis")
-    print("[AuthentiScan] Models: MTCNN (Face Detection) + InceptionResnetV1 (Feature Extraction)")
-    print("[AuthentiScan] Similarity Metric: Cosine Similarity")
-    print("[AuthentiScan] Server running at http://127.0.0.1:5000")
+    print("[Deepfake Detection] Starting Deepfake Video Detection System...")
+    print("[Deepfake Detection] Application: Deepfake Detection")
+    print("[Deepfake Detection] Methodology: Frame-Level Facial Embedding Analysis")
+    print("[Deepfake Detection] Models: MTCNN (Face Detection) + InceptionResnetV1 (Feature Extraction)")
+    print("[Deepfake Detection] Server running at http://127.0.0.1:5000")
     app.run(debug=True, host='127.0.0.1', port=5000, threaded=True, use_reloader=False)
-
