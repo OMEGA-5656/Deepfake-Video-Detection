@@ -57,13 +57,124 @@ except Exception as e:
     print("[Deepfake Detection] Models will be loaded on first video analysis request")
 
 
+def calculate_accuracy():
+    """
+    Calculates the deepfake detection accuracy based on result.txt.
+    Assumes all videos in the log are deepfakes (Ground Truth = True).
+    """
+    try:
+        total_predictions = 0
+        correct_predictions = 0
+        
+        # Ensure the log file exists
+        if not os.path.exists('result.txt'):
+            return "N/A (result.txt not found)"
+
+        with open('result.txt', 'r') as f:
+            for line in f:
+                line = line.strip()
+                
+                # Check for valid log lines (e.g., "filename.mp4:True" or "filename.mp4:False")
+                # Skip comments, empty lines, or lines without a colon
+                if not line or line.startswith('#') or ':' not in line:
+                    continue
+                    
+                parts = line.split(':')
+                if len(parts) < 2:
+                    continue
+                    
+                # Get the last part as the prediction
+                prediction_str = parts[-1].strip()
+                
+                # Ensure it's a valid boolean prediction
+                if prediction_str not in ['True', 'False']:
+                    continue
+
+                total_predictions += 1
+                
+                # Ground truth is always True (all are deepfakes)
+                # A correct prediction is when the model also said "True"
+                if prediction_str == 'True':
+                    correct_predictions += 1
+        
+        if total_predictions == 0:
+            return "N/A (No results)"
+        
+        # Calculate accuracy and format to one decimal place
+        accuracy = (correct_predictions / total_predictions) * 100
+        return f"{accuracy:.1f}" # Return as formatted string "92.7"
+        
+    except Exception as e:
+        print(f"[Accuracy Calc] Error: {e}")
+        traceback.print_exc()
+        return "N/A (Error)"
+
+def calculate_accuracy():
+    """
+    Calculates the deepfake detection accuracy based on result.txt.
+    Assumes all videos in the log are deepfakes (Ground Truth = True).
+    """
+    try:
+        total_predictions = 0
+        correct_predictions = 0
+        
+        # Ensure the log file exists
+        if not os.path.exists('result.txt'):
+            return "N/A (result.txt not found)"
+
+        with open('result.txt', 'r') as f:
+            for line in f:
+                line = line.strip()
+                
+                # Check for valid log lines (e.g., "filename.mp4:True" or "filename.mp4:False")
+                # Skip comments, empty lines, or lines without a colon
+                if not line or line.startswith('#') or ':' not in line:
+                    continue
+                    
+                parts = line.split(':')
+                if len(parts) < 2:
+                    continue
+                    
+                # Get the last part as the prediction
+                prediction_str = parts[-1].strip()
+                
+                # Ensure it's a valid boolean prediction
+                if prediction_str not in ['True', 'False']:
+                    continue
+
+                total_predictions += 1
+                
+                # Ground truth is always True (all are deepfakes)
+                # A correct prediction is when the model also said "True"
+                if prediction_str == 'True':
+                    correct_predictions += 1
+        
+        if total_predictions == 0:
+            return "N/A (No results)"
+        
+        # Calculate accuracy and format to one decimal place
+        accuracy = (correct_predictions / total_predictions) * 100
+        return f"{accuracy:.1f}" # Return as formatted string "92.7"
+        
+    except Exception as e:
+        print(f"[Accuracy Calc] Error: {e}")
+        traceback.print_exc()
+        return "N/A (Error)"
+
 @app.route('/')
 def index():
     """
     Render the main upload page for Deepfake Detection.
     Users can upload a single video or a folder for batch analysis.
+    
+    NOW INCLUDES ACCURACY CALCULATION.
     """
-    return render_template('index.html')
+    print("[Deepfake Detection] Calculating accuracy for homepage...")
+    current_accuracy = calculate_accuracy()
+    print(f"[Deepfake Detection] Current accuracy: {current_accuracy}%")
+    
+    # Pass the calculated accuracy to the template
+    return render_template('index.html', accuracy=current_accuracy)
 
 
 @app.route('/video/<filename>')
