@@ -6,18 +6,7 @@ A web-based application that detects deepfake videos using artificial intelligen
 
 ## Project Information
 
-**Project Title:** Deepfake Video Detection System  
-**Application Name:** AuthentiScan  
-**Institution:** Sapthagiri College of Engineering, Department of Computer Science Engineering  
-**Affiliation:** VTU, Belagavi | AICTE Approved | NAAC & NBA Accredited
-
-**Authors:**
-- Abhishek Saini (1SG23CS004)
-- Arnav Singh Thapa (1SG23CS016)
-- Bhavana Hegde (1SG23CS026)
-- Chaithanya D S (1SG23CS028)
-
-**Guide:** Assistant Prof. Hemalatha K, Department of Computer Science Engineering
+**Project Title:** Deepfake Video Detection System
 
 ## Technology Stack
 
