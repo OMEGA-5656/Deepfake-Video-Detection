@@ -125,41 +125,24 @@ def analyze_video_frames(input_video_path, output_video_path):
         
         print(f"[Facial Embedding Analyzer] Video properties: {width}x{height} @ {fps} fps")
         
-        # Initialize video writer for output (with annotations)
-        # Try multiple codecs for compatibility
-        codecs_to_try = [
-            ('XVID', 'XVID'),       # Good compatibility, works on Windows
-            ('MJPG', 'Motion JPEG'), # Widely supported
-            ('mp4v', 'MPEG-4'),     # Fallback
-            ('avc1', 'H.264/AVC'),  # Best for HTML5 but may not work on Windows
-        ]
+        # --- FIX: Force Output to MP4 (H.264) for Browser Compatibility ---
+        # We removed the 'XVID' loop because it creates .avi files.
+        # Modern browsers (Chrome/Edge) require 'avc1' (H.264) to play video natively.
+        fourcc = cv2.VideoWriter_fourcc(*'avc1')
         
-        video_writer = None
-        used_codec = None
-        for codec_name, codec_desc in codecs_to_try:
-            try:
-                fourcc = cv2.VideoWriter_fourcc(*codec_name)
-                # Use .avi extension for XVID/MJPG, .mp4 for others
-                if codec_name in ['XVID', 'MJPG']:
-                    output_path_avi = output_video_path.replace('.mp4', '.avi')
-                    video_writer = cv2.VideoWriter(output_path_avi, fourcc, fps, (width, height))
-                else:
-                    video_writer = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
-                    
-                if video_writer.isOpened():
-                    used_codec = codec_desc
-                    print(f"[Facial Embedding Analyzer] Using codec: {codec_desc} ({codec_name})")
-                    if codec_name in ['XVID', 'MJPG']:
-                        output_video_path = output_path_avi  # Update path to .avi file
-                    break
-                else:
-                    if video_writer:
-                        video_writer.release()
-            except Exception as e:
-                print(f"[Facial Embedding Analyzer] Failed to use codec {codec_name}: {str(e)}")
-                if video_writer:
-                    video_writer.release()
-                continue
+        # Ensure output filename ends with .mp4
+        if not output_video_path.lower().endswith('.mp4'):
+            output_video_path = output_video_path.rsplit('.', 1)[0] + '.mp4'
+            
+        print(f"[Facial Embedding Analyzer] Outputting to MP4: {output_video_path}")
+        
+        video_writer = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+        
+        # Fallback to mp4v if avc1 is not supported on this machine
+        if not video_writer.isOpened():
+             print("[Facial Embedding Analyzer] WARNING: 'avc1' codec failed. Falling back to 'mp4v'...")
+             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+             video_writer = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
         
         if video_writer is None or not video_writer.isOpened():
             print(f"[Facial Embedding Analyzer] ERROR: Could not create output video file")
