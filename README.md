@@ -89,7 +89,7 @@ The system provides:
 
 - Mitigates Information Warfare
 - Safeguards Reputations and Assets
-- Restores Digital Trust
+- Restores Digital Trust.
 - Strengthens Cyber Resilience
 - Supports Legal and Forensic Integrity
 
