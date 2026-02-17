@@ -91,7 +91,7 @@ The system provides:
 - Safeguards Reputations and Assets
 - Restores Digital Trust.
 - Strengthens Cyber Resilience
-- Supports Legal and Forensic Integrity
+- Supports Legal and Forensic Integrity.
 
 ## Real World Applications
 
