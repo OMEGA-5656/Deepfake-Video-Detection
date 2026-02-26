@@ -347,6 +347,55 @@ def upload_folder():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+
+@app.route('/api/results', methods=['GET'])
+def get_results():
+    """Return parsed results from result.txt as JSON list."""
+    try:
+        results = []
+        if not os.path.exists('result.txt'):
+            return jsonify({"results": results})
+
+        with open('result.txt', 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+
+                if ':' not in line:
+                    continue
+
+                parts = line.rsplit(':', 1)
+                if len(parts) != 2:
+                    continue
+
+                name = parts[0].strip()
+                prediction = parts[1].strip()
+
+                processed_video_url = None
+                # If the entry contains '(saved as NAME)', use that saved name
+                try:
+                    import re
+                    m = re.search(r"\(saved as (.+?)\)", name)
+                    if m:
+                        saved = m.group(1)
+                        candidate = os.path.join(app.config['UPLOAD_FOLDER'], saved)
+                        if os.path.exists(candidate):
+                            processed_video_url = f"/video/{quote(saved, safe='')}"
+                except Exception:
+                    pass
+
+                results.append({
+                    'name': name,
+                    'prediction': prediction,
+                    'processed_video_url': processed_video_url
+                })
+
+        return jsonify({"results": results})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     print("[Deepfake Detection] Starting Deepfake Video Detection System API...")
     app.run(debug=True, host='127.0.0.1', port=5000, threaded=True, use_reloader=False)

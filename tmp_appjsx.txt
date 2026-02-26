@@ -1,0 +1,190 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/App.jsx");import __vite__cjsImport0_react_jsxDevRuntime from "/@fs/E:/deepfake/Deepfake-Video-Detection/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=4fcf07d0"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+var _s = $RefreshSig$();
+import __vite__cjsImport1_react from "/@fs/E:/deepfake/Deepfake-Video-Detection/node_modules/.vite/deps/react.js?v=4fcf07d0"; const useEffect = __vite__cjsImport1_react["useEffect"]; const useState = __vite__cjsImport1_react["useState"]; const useRef = __vite__cjsImport1_react["useRef"];
+import reactLogo from "/src/assets/react.svg?import";
+import viteLogo from "/vite.svg?import";
+import "/src/App.css";
+function App() {
+  _s();
+  const [accuracy, setAccuracy] = useState("—");
+  const [status, setStatus] = useState("");
+  const [result, setResult] = useState(null);
+  const fileRef = useRef();
+  useEffect(() => {
+    async function loadAccuracy() {
+      try {
+        const res = await fetch("http://127.0.0.1:5000/api/accuracy");
+        const data = await res.json();
+        setAccuracy(data.accuracy ?? "N/A");
+      } catch (e) {
+        setAccuracy("N/A");
+      }
+    }
+    loadAccuracy();
+  }, []);
+  async function uploadFile(e) {
+    e.preventDefault();
+    const file = fileRef.current.files[0];
+    if (!file) return setStatus("Select a file first");
+    const fd = new FormData();
+    fd.append("file", file);
+    setStatus("Uploading...");
+    try {
+      const res = await fetch("http://127.0.0.1:5000/api/upload", {
+        method: "POST",
+        body: fd
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStatus("Upload failed");
+        setResult(data);
+      } else {
+        setStatus("Upload successful");
+        setResult(data);
+      }
+    } catch (err) {
+      setStatus("Error: " + err.message);
+      setResult(null);
+    }
+  }
+  return /* @__PURE__ */ jsxDEV("div", { className: "app-container", children: [
+    /* @__PURE__ */ jsxDEV("header", { className: "app-header", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("a", { href: "https://vite.dev", target: "_blank", rel: "noreferrer", children: /* @__PURE__ */ jsxDEV("img", { src: viteLogo, className: "logo", alt: "Vite logo" }, void 0, false, {
+          fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+          lineNumber: 57,
+          columnNumber: 13
+        }, this) }, void 0, false, {
+          fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+          lineNumber: 56,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("a", { href: "https://react.dev", target: "_blank", rel: "noreferrer", children: /* @__PURE__ */ jsxDEV("img", { src: reactLogo, className: "logo react", alt: "React logo" }, void 0, false, {
+          fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+          lineNumber: 60,
+          columnNumber: 13
+        }, this) }, void 0, false, {
+          fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+          lineNumber: 59,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+        lineNumber: 55,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("h1", { children: "Deepfake Video Detection — Frontend" }, void 0, false, {
+        fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+        lineNumber: 63,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+      lineNumber: 54,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("section", { className: "panel", children: [
+      /* @__PURE__ */ jsxDEV("h2", { children: "Model Accuracy" }, void 0, false, {
+        fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+        lineNumber: 67,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("p", { children: [
+        "Current accuracy: ",
+        /* @__PURE__ */ jsxDEV("strong", { children: accuracy }, void 0, false, {
+          fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+          lineNumber: 68,
+          columnNumber: 30
+        }, this)
+      ] }, void 0, true, {
+        fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+        lineNumber: 68,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+      lineNumber: 66,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("section", { className: "panel", children: [
+      /* @__PURE__ */ jsxDEV("h2", { children: "Upload a video" }, void 0, false, {
+        fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+        lineNumber: 72,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("form", { onSubmit: uploadFile, children: [
+        /* @__PURE__ */ jsxDEV("input", { ref: fileRef, type: "file", accept: "video/*" }, void 0, false, {
+          fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+          lineNumber: 74,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("button", { type: "submit", children: "Upload" }, void 0, false, {
+          fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+          lineNumber: 75,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+        lineNumber: 73,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("p", { children: status }, void 0, false, {
+        fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+        lineNumber: 77,
+        columnNumber: 9
+      }, this),
+      result && /* @__PURE__ */ jsxDEV("pre", { style: { whiteSpace: "pre-wrap", maxWidth: 800 }, children: JSON.stringify(result, null, 2) }, void 0, false, {
+        fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+        lineNumber: 79,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+      lineNumber: 71,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("footer", { style: { marginTop: 20 }, children: /* @__PURE__ */ jsxDEV("small", { children: "Frontend served by Vite on :5173 — Backend expected on port 5000" }, void 0, false, {
+      fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+      lineNumber: 86,
+      columnNumber: 9
+    }, this) }, void 0, false, {
+      fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+      lineNumber: 85,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx",
+    lineNumber: 53,
+    columnNumber: 5
+  }, this);
+}
+_s(App, "LuHdpCB2+cXhIFV/sKAzm/SAKac=");
+_c = App;
+export default App;
+var _c;
+$RefreshReg$(_c, "App");
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+function $RefreshReg$(type, id) {
+  return RefreshRuntime.register(type, "E:/deepfake/Deepfake-Video-Detection/frontend/src/App.jsx " + id);
+}
+function $RefreshSig$() {
+  return RefreshRuntime.createSignatureFunctionForTransform();
+}
+
+//# sourceMappingURL=data:application/json;base64,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V0FHQTtBQUFBLElBRUEsdUJBQUMsYUFBUSxXQUFVLFNBQ2pCO0FBQUEsNkJBQUMsUUFBRyw4QkFBSjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBQWtCO0FBQUEsTUFDbEIsdUJBQUMsVUFBSyxVQUFVYSxZQUNkO0FBQUEsK0JBQUMsV0FBTSxLQUFLUCxTQUFTLE1BQUssUUFBTyxRQUFPLGFBQXhDO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBaUQ7QUFBQSxRQUNqRCx1QkFBQyxZQUFPLE1BQUssVUFBUyxzQkFBdEI7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUE0QjtBQUFBLFdBRjlCO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFHQTtBQUFBLE1BQ0EsdUJBQUMsT0FBR0osb0JBQUo7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQUFXO0FBQUEsTUFDVkUsVUFDQyx1QkFBQyxTQUFJLE9BQU8sRUFBQ3NCLFlBQVksWUFBWUMsVUFBVSxJQUFHLEdBQy9DQyxlQUFLQyxVQUFVekIsUUFBUSxNQUFNLENBQUMsS0FEakM7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQUVBO0FBQUEsU0FWSjtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBWUE7QUFBQSxJQUVBLHVCQUFDLFlBQU8sT0FBTyxFQUFDMEIsV0FBVyxHQUFFLEdBQzNCLGlDQUFDLFdBQU0sZ0ZBQVA7QUFBQTtBQUFBO0FBQUE7QUFBQSxXQUF1RSxLQUR6RTtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBRUE7QUFBQSxPQWxDRjtBQUFBO0FBQUE7QUFBQTtBQUFBLFNBbUNBO0FBRUo7QUFBQy9CLEdBcEZRRCxLQUFHO0FBQUEsS0FBSEE7QUFzRlQsZUFBZUE7QUFBRyxJQUFBaUM7QUFBQSxhQUFBQSxJQUFBIiwibmFtZXMiOlsidXNlRWZmZWN0IiwidXNlU3RhdGUiLCJ1c2VSZWYiLCJyZWFjdExvZ28iLCJ2aXRlTG9nbyIsIkFwcCIsIl9zIiwiYWNjdXJhY3kiLCJzZXRBY2N1cmFjeSIsInN0YXR1cyIsInNldFN0YXR1cyIsInJlc3VsdCIsInNldFJlc3VsdCIsImZpbGVSZWYiLCJsb2FkQWNjdXJhY3kiLCJyZXMiLCJmZXRjaCIsImRhdGEiLCJqc29uIiwiZSIsInVwbG9hZEZpbGUiLCJwcmV2ZW50RGVmYXVsdCIsImZpbGUiLCJjdXJyZW50IiwiZmlsZXMiLCJmZCIsIkZvcm1EYXRhIiwiYXBwZW5kIiwibWV0aG9kIiwiYm9keSIsIm9rIiwiZXJyIiwibWVzc2FnZSIsIndoaXRlU3BhY2UiLCJtYXhXaWR0aCIsIkpTT04iLCJzdHJpbmdpZnkiLCJtYXJnaW5Ub3AiLCJfYyJdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJBcHAuanN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IHVzZUVmZmVjdCwgdXNlU3RhdGUsIHVzZVJlZiB9IGZyb20gJ3JlYWN0J1xuaW1wb3J0IHJlYWN0TG9nbyBmcm9tICcuL2Fzc2V0cy9yZWFjdC5zdmcnXG5pbXBvcnQgdml0ZUxvZ28gZnJvbSAnL3ZpdGUuc3ZnJ1xuaW1wb3J0ICcuL0FwcC5jc3MnXG5cbmZ1bmN0aW9uIEFwcCgpIHtcbiAgY29uc3QgW2FjY3VyYWN5LCBzZXRBY2N1cmFjeV0gPSB1c2VTdGF0ZSgn4oCUJylcbiAgY29uc3QgW3N0YXR1cywgc2V0U3RhdHVzXSA9IHVzZVN0YXRlKCcnKVxuICBjb25zdCBbcmVzdWx0LCBzZXRSZXN1bHRdID0gdXNlU3RhdGUobnVsbClcbiAgY29uc3QgZmlsZVJlZiA9IHVzZVJlZigpXG5cbiAgdXNlRWZmZWN0KCgpID0+IHtcbiAgICBhc3luYyBmdW5jdGlvbiBsb2FkQWNjdXJhY3koKSB7XG4gICAgICB0cnkge1xuICAgICAgICBjb25zdCByZXMgPSBhd2FpdCBmZXRjaCgnaHR0cDovLzEyNy4wLjAuMTo1MDAwL2FwaS9hY2N1cmFjeScpXG4gICAgICAgIGNvbnN0IGRhdGEgPSBhd2FpdCByZXMuanNvbigpXG4gICAgICAgIHNldEFjY3VyYWN5KGRhdGEuYWNjdXJhY3kgPz8gJ04vQScpXG4gICAgICB9IGNhdGNoIChlKSB7XG4gICAgICAgIHNldEFjY3VyYWN5KCdOL0EnKVxuICAgICAgfVxuICAgIH1cbiAgICBsb2FkQWNjdXJhY3koKVxuICB9LCBbXSlcblxuICBhc3luYyBmdW5jdGlvbiB1cGxvYWRGaWxlKGUpIHtcbiAgICBlLnByZXZlbnREZWZhdWx0KClcbiAgICBjb25zdCBmaWxlID0gZmlsZVJlZi5jdXJyZW50LmZpbGVzWzBdXG4gICAgaWYgKCFmaWxlKSByZXR1cm4gc2V0U3RhdHVzKCdTZWxlY3QgYSBmaWxlIGZpcnN0JylcblxuICAgIGNvbnN0IGZkID0gbmV3IEZvcm1EYXRhKClcbiAgICBmZC5hcHBlbmQoJ2ZpbGUnLCBmaWxlKVxuICAgIHNldFN0YXR1cygnVXBsb2FkaW5nLi4uJylcbiAgICB0cnkge1xuICAgICAgY29uc3QgcmVzID0gYXdhaXQgZmV0Y2goJ2h0dHA6Ly8xMjcuMC4wLjE6NTAwMC9hcGkvdXBsb2FkJywge1xuICAgICAgICBtZXRob2Q6ICdQT1NUJyxcbiAgICAgICAgYm9keTogZmRcbiAgICAgIH0pXG4gICAgICBjb25zdCBkYXRhID0gYXdhaXQgcmVzLmpzb24oKVxuICAgICAgaWYgKCFyZXMub2spIHtcbiAgICAgICAgc2V0U3RhdHVzKCdVcGxvYWQgZmFpbGVkJylcbiAgICAgICAgc2V0UmVzdWx0KGRhdGEpXG4gICAgICB9IGVsc2Uge1xuICAgICAgICBzZXRTdGF0dXMoJ1VwbG9hZCBzdWNjZXNzZnVsJylcbiAgICAgICAgc2V0UmVzdWx0KGRhdGEpXG4gICAgICB9XG4gICAgfSBjYXRjaCAoZXJyKSB7XG4gICAgICBzZXRTdGF0dXMoJ0Vycm9yOiAnICsgZXJyLm1lc3NhZ2UpXG4gICAgICBzZXRSZXN1bHQobnVsbClcbiAgICB9XG4gIH1cblxuICByZXR1cm4gKFxuICAgIDxkaXYgY2xhc3NOYW1lPVwiYXBwLWNvbnRhaW5lclwiPlxuICAgICAgPGhlYWRlciBjbGFzc05hbWU9XCJhcHAtaGVhZGVyXCI+XG4gICAgICAgIDxkaXY+XG4gICAgICAgICAgPGEgaHJlZj1cImh0dHBzOi8vdml0ZS5kZXZcIiB0YXJnZXQ9XCJfYmxhbmtcIiByZWw9XCJub3JlZmVycmVyXCI+XG4gICAgICAgICAgICA8aW1nIHNyYz17dml0ZUxvZ299IGNsYXNzTmFtZT1cImxvZ29cIiBhbHQ9XCJWaXRlIGxvZ29cIiAvPlxuICAgICAgICAgIDwvYT5cbiAgICAgICAgICA8YSBocmVmPVwiaHR0cHM6Ly9yZWFjdC5kZXZcIiB0YXJnZXQ9XCJfYmxhbmtcIiByZWw9XCJub3JlZmVycmVyXCI+XG4gICAgICAgICAgICA8aW1nIHNyYz17cmVhY3RMb2dvfSBjbGFzc05hbWU9XCJsb2dvIHJlYWN0XCIgYWx0PVwiUmVhY3QgbG9nb1wiIC8+XG4gICAgICAgICAgPC9hPlxuICAgICAgICA8L2Rpdj5cbiAgICAgICAgPGgxPkRlZXBmYWtlIFZpZGVvIERldGVjdGlvbiDigJQgRnJvbnRlbmQ8L2gxPlxuICAgICAgPC9oZWFkZXI+XG5cbiAgICAgIDxzZWN0aW9uIGNsYXNzTmFtZT1cInBhbmVsXCI+XG4gICAgICAgIDxoMj5Nb2RlbCBBY2N1cmFjeTwvaDI+XG4gICAgICAgIDxwPkN1cnJlbnQgYWNjdXJhY3k6IDxzdHJvbmc+e2FjY3VyYWN5fTwvc3Ryb25nPjwvcD5cbiAgICAgIDwvc2VjdGlvbj5cblxuICAgICAgPHNlY3Rpb24gY2xhc3NOYW1lPVwicGFuZWxcIj5cbiAgICAgICAgPGgyPlVwbG9hZCBhIHZpZGVvPC9oMj5cbiAgICAgICAgPGZvcm0gb25TdWJtaXQ9e3VwbG9hZEZpbGV9PlxuICAgICAgICAgIDxpbnB1dCByZWY9e2ZpbGVSZWZ9IHR5cGU9XCJmaWxlXCIgYWNjZXB0PVwidmlkZW8vKlwiIC8+XG4gICAgICAgICAgPGJ1dHRvbiB0eXBlPVwic3VibWl0XCI+VXBsb2FkPC9idXR0b24+XG4gICAgICAgIDwvZm9ybT5cbiAgICAgICAgPHA+e3N0YXR1c308L3A+XG4gICAgICAgIHtyZXN1bHQgJiYgKFxuICAgICAgICAgIDxwcmUgc3R5bGU9e3t3aGl0ZVNwYWNlOiAncHJlLXdyYXAnLCBtYXhXaWR0aDogODAwfX0+XG4gICAgICAgICAgICB7SlNPTi5zdHJpbmdpZnkocmVzdWx0LCBudWxsLCAyKX1cbiAgICAgICAgICA8L3ByZT5cbiAgICAgICAgKX1cbiAgICAgIDwvc2VjdGlvbj5cblxuICAgICAgPGZvb3RlciBzdHlsZT17e21hcmdpblRvcDogMjB9fT5cbiAgICAgICAgPHNtYWxsPkZyb250ZW5kIHNlcnZlZCBieSBWaXRlIG9uIDo1MTczIOKAlCBCYWNrZW5kIGV4cGVjdGVkIG9uIHBvcnQgNTAwMDwvc21hbGw+XG4gICAgICA8L2Zvb3Rlcj5cbiAgICA8L2Rpdj5cbiAgKVxufVxuXG5leHBvcnQgZGVmYXVsdCBBcHBcbiJdLCJmaWxlIjoiRTovZGVlcGZha2UvRGVlcGZha2UtVmlkZW8tRGV0ZWN0aW9uL2Zyb250ZW5kL3NyYy9BcHAuanN4In0=
